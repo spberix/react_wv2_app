@@ -69,7 +69,14 @@ int VideoGridManager::addParticipant(const std::string& name, const std::string&
     // Recalculate layout
     calculateGridLayout();
 
-    // Add video tile to renderer
+    // Update positions of ALL existing tiles (before adding new one)
+    if (renderer_ && participants_.size() > 1) {
+        // Update all tiles except the newly added one
+        std::vector<VideoParticipant> existingParticipants(participants_.begin(), participants_.end() - 1);
+        renderer_->updateTilePositions(existingParticipants);
+    }
+
+    // Add new video tile to renderer
     if (renderer_) {
         renderer_->addVideoTile(participants_.back());
     }
@@ -106,6 +113,11 @@ bool VideoGridManager::removeParticipant(int participantId) {
 
     // Recalculate layout for remaining participants
     calculateGridLayout();
+
+    // Update positions of all remaining tiles
+    if (renderer_ && !participants_.empty()) {
+        renderer_->updateTilePositions(participants_);
+    }
 
     // Notify React
     notifyReact();
@@ -164,9 +176,33 @@ void VideoGridManager::calculateGridLayout() {
         return;
     }
 
+    // Calculate dynamic grid dimensions based on participant count
+    int participantCount = participants_.size();
+    int cols, rows;
+
+    if (participantCount == 1) {
+        cols = 1;
+        rows = 1;
+    } else if (participantCount == 2) {
+        cols = 2;
+        rows = 1;
+    } else if (participantCount <= 4) {
+        cols = 2;
+        rows = 2;
+    } else if (participantCount <= 6) {
+        cols = 3;
+        rows = 2;
+    } else {
+        cols = 3;
+        rows = 3;
+    }
+
+    std::cout << "Dynamic grid layout: " << rows << "x" << cols << " for "
+              << participantCount << " participants" << std::endl;
+
     // Calculate tile dimensions
-    int tileWidth = (gridWidth - (GRID_COLS + 1) * GRID_PADDING) / GRID_COLS;
-    int tileHeight = (gridHeight - (GRID_ROWS + 1) * GRID_PADDING) / GRID_ROWS;
+    int tileWidth = (gridWidth - (cols + 1) * GRID_PADDING) / cols;
+    int tileHeight = (gridHeight - (rows + 1) * GRID_PADDING) / rows;
 
     // Maintain 16:9 aspect ratio
     int aspectWidth = tileWidth;
@@ -179,8 +215,8 @@ void VideoGridManager::calculateGridLayout() {
 
     // Position each participant in the grid
     for (size_t i = 0; i < participants_.size(); ++i) {
-        int row = i / GRID_COLS;
-        int col = i % GRID_COLS;
+        int row = i / cols;
+        int col = i % cols;
 
         // Calculate position with padding
         int x = GRID_PADDING + col * (tileWidth + GRID_PADDING);

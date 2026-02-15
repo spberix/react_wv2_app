@@ -49,8 +49,6 @@ private:
     mutable std::mutex mutex_;
 
     // Layout constants
-    static constexpr int GRID_ROWS = 3;
-    static constexpr int GRID_COLS = 3;
     static constexpr int MAX_PARTICIPANTS = 9;
     static constexpr int CONTROLS_HEIGHT = 60;
     static constexpr int GRID_PADDING = 10;

@@ -20,7 +20,9 @@
       "Bash(ffmpeg:*)",
       "Bash(git init:*)",
       "Bash(find:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(make:*)",
+      "Bash(/Users/elgasano/Sources/TeamsBICSandbox/build/TeamsBICSandbox)"
     ]
   }
 }
