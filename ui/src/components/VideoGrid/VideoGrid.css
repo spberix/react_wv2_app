@@ -115,15 +115,15 @@
 /* Video Tile Overlay */
 .video-tile {
   background: transparent; /* Critical! */
-  display: flex;
-  align-items: flex-end;
-  padding: 12px;
-  box-sizing: border-box;
+  /* position is set via inline styles - don't override here */
   pointer-events: none; /* Don't block mouse events */
 }
 
 /* Participant Label */
 .participant-label {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
   background: rgba(0, 0, 0, 0.75);
   color: white;
   padding: 6px 14px;

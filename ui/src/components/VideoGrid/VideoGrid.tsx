@@ -7,6 +7,43 @@ import './VideoGrid.css';
 export const VideoGrid: React.FC = () => {
   const [participants, setParticipants] = useState<ParticipantLayout[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [gridOffset, setGridOffset] = useState({ top: 0, left: 0 });
+  const gridRef = React.useRef<HTMLDivElement>(null);
+
+  // Calculate video grid offset dynamically
+  useEffect(() => {
+    const updateOffset = () => {
+      if (gridRef.current) {
+        const computedStyle = window.getComputedStyle(gridRef.current);
+        const top = parseInt(computedStyle.top) || 0;
+        const left = parseInt(computedStyle.left) || 0;
+        console.log('Grid offset from computed style:', { top, left });
+        setGridOffset({ top, left });
+      }
+    };
+
+    // Use requestAnimationFrame to ensure DOM is ready
+    requestAnimationFrame(() => {
+      updateOffset();
+    });
+
+    // Also update after a small delay to ensure layout is complete
+    setTimeout(updateOffset, 100);
+
+    window.addEventListener('resize', updateOffset);
+    return () => window.removeEventListener('resize', updateOffset);
+  }, []);
+
+  // Recalculate offset when loading completes
+  useEffect(() => {
+    if (!isLoading && gridRef.current) {
+      const computedStyle = window.getComputedStyle(gridRef.current);
+      const top = parseInt(computedStyle.top) || 0;
+      const left = parseInt(computedStyle.left) || 0;
+      console.log('Grid offset after load:', { top, left });
+      setGridOffset({ top, left });
+    }
+  }, [isLoading]);
 
   // Load initial layout from C++ and listen for C++ push notifications
   useEffect(() => {
@@ -77,9 +114,9 @@ export const VideoGrid: React.FC = () => {
         canRemove={participants.length > 0}
         participantCount={participants.length}
       />
-      <div className="video-grid">
+      <div className="video-grid" ref={gridRef}>
         {participants.map(p => (
-          <VideoTile key={p.id} participant={p} />
+          <VideoTile key={p.id} participant={p} gridOffset={gridOffset} />
         ))}
       </div>
     </div>

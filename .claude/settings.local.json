@@ -18,7 +18,9 @@
       "Bash(./generate_test_videos.sh)",
       "Bash(brew install:*)",
       "Bash(ffmpeg:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)"
     ]
   }
 }
