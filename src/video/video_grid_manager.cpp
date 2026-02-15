@@ -59,7 +59,7 @@ int VideoGridManager::addParticipant(const std::string& name, const std::string&
 
     // Create new participant
     int participantId = nextParticipantId_++;
-    VideoParticipant participant(participantId, name, videoPath);
+    VideoParticipant participant(participantId, name, videoPath, ParticipantType::VIDEO);
 
     // Add to list
     participants_.push_back(participant);
@@ -69,11 +69,18 @@ int VideoGridManager::addParticipant(const std::string& name, const std::string&
     // Recalculate layout
     calculateGridLayout();
 
-    // Update positions of ALL existing tiles (before adding new one)
+    // Update positions of ALL existing video tiles (before adding new one)
     if (renderer_ && participants_.size() > 1) {
-        // Update all tiles except the newly added one
-        std::vector<VideoParticipant> existingParticipants(participants_.begin(), participants_.end() - 1);
-        renderer_->updateTilePositions(existingParticipants);
+        // Filter only video participants (exclude the newly added one)
+        std::vector<VideoParticipant> existingVideoParticipants;
+        for (size_t i = 0; i < participants_.size() - 1; ++i) {
+            if (participants_[i].isVideo()) {
+                existingVideoParticipants.push_back(participants_[i]);
+            }
+        }
+        if (!existingVideoParticipants.empty()) {
+            renderer_->updateTilePositions(existingVideoParticipants);
+        }
     }
 
     // Add new video tile to renderer
@@ -82,6 +89,47 @@ int VideoGridManager::addParticipant(const std::string& name, const std::string&
     }
 
     // Notify React
+    notifyReact();
+
+    return participantId;
+}
+
+int VideoGridManager::addWebApp(const std::string& name, const std::string& url) {
+    std::lock_guard<std::mutex> lock(mutex_);
+
+    // Check max capacity
+    if (participants_.size() >= MAX_PARTICIPANTS) {
+        std::cerr << "Cannot add web app: maximum capacity reached" << std::endl;
+        return -1;
+    }
+
+    // Create new web app participant
+    int participantId = nextParticipantId_++;
+    VideoParticipant participant(participantId, name, url, ParticipantType::WEB_APP);
+
+    // Add to list
+    participants_.push_back(participant);
+
+    std::cout << "Added web app " << participantId << ": " << name << " (" << url << ")" << std::endl;
+
+    // Recalculate layout
+    calculateGridLayout();
+
+    // Update positions of ALL existing video tiles (before adding new one)
+    if (renderer_ && participants_.size() > 1) {
+        // Filter only video participants for renderer update
+        std::vector<VideoParticipant> videoParticipants;
+        for (const auto& p : participants_) {
+            if (p.isVideo()) {
+                videoParticipants.push_back(p);
+            }
+        }
+        if (!videoParticipants.empty()) {
+            renderer_->updateTilePositions(videoParticipants);
+        }
+    }
+
+    // Notify React (will include all participants, including web apps)
     notifyReact();
 
     return participantId;
@@ -114,9 +162,17 @@ bool VideoGridManager::removeParticipant(int participantId) {
     // Recalculate layout for remaining participants
     calculateGridLayout();
 
-    // Update positions of all remaining tiles
+    // Update positions of all remaining video tiles
     if (renderer_ && !participants_.empty()) {
-        renderer_->updateTilePositions(participants_);
+        std::vector<VideoParticipant> videoParticipants;
+        for (const auto& p : participants_) {
+            if (p.isVideo()) {
+                videoParticipants.push_back(p);
+            }
+        }
+        if (!videoParticipants.empty()) {
+            renderer_->updateTilePositions(videoParticipants);
+        }
     }
 
     // Notify React
@@ -136,9 +192,17 @@ void VideoGridManager::updateWindowSize(int width, int height) {
     // Recalculate layout
     calculateGridLayout();
 
-    // Update renderer positions
+    // Update renderer positions for video participants only
     if (renderer_) {
-        renderer_->updateTilePositions(participants_);
+        std::vector<VideoParticipant> videoParticipants;
+        for (const auto& p : participants_) {
+            if (p.isVideo()) {
+                videoParticipants.push_back(p);
+            }
+        }
+        if (!videoParticipants.empty()) {
+            renderer_->updateTilePositions(videoParticipants);
+        }
     }
 
     // Notify React
@@ -260,6 +324,8 @@ std::string VideoGridManager::serializeParticipants() const {
 
         oss << "{\"id\": " << p.getId()
             << ", \"name\": \"" << escapeJson(p.getName()) << "\""
+            << ", \"type\": \"" << (p.isVideo() ? "video" : "web_app") << "\""
+            << ", \"contentUrl\": \"" << escapeJson(p.getContentPath()) << "\""
             << ", \"position\": {\"x\": " << pos.x
             << ", \"y\": " << pos.y
             << ", \"width\": " << pos.width

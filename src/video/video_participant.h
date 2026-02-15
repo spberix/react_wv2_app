@@ -3,6 +3,11 @@
 
 #include <string>
 
+enum class ParticipantType {
+    VIDEO,
+    WEB_APP
+};
+
 struct VideoPosition {
     int x;
     int y;
@@ -15,12 +20,16 @@ struct VideoPosition {
 
 class VideoParticipant {
 public:
-    VideoParticipant(int id, const std::string& name, const std::string& videoPath);
+    VideoParticipant(int id, const std::string& name, const std::string& contentPath, ParticipantType type);
 
     int getId() const { return id_; }
     std::string getName() const { return name_; }
-    std::string getVideoPath() const { return videoPath_; }
+    std::string getContentPath() const { return contentPath_; }
+    std::string getVideoPath() const { return contentPath_; }  // Deprecated: use getContentPath()
     VideoPosition getPosition() const { return position_; }
+    ParticipantType getType() const { return type_; }
+    bool isWebApp() const { return type_ == ParticipantType::WEB_APP; }
+    bool isVideo() const { return type_ == ParticipantType::VIDEO; }
 
     void setPosition(const VideoPosition& pos) { position_ = pos; }
     void setName(const std::string& name) { name_ = name; }
@@ -28,7 +37,8 @@ public:
 private:
     int id_;
     std::string name_;
-    std::string videoPath_;
+    std::string contentPath_;
+    ParticipantType type_;
     VideoPosition position_;
 };
 

@@ -1,6 +1,7 @@
 import React from 'react';
 interface VideoControlsProps {
     onAddParticipant: () => void;
+    onAddWebApp: () => void;
     onRemoveParticipant: () => void;
     canAdd: boolean;
     canRemove: boolean;

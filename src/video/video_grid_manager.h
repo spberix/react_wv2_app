@@ -24,6 +24,10 @@ public:
     // Returns participant ID on success, -1 on failure
     int addParticipant(const std::string& name, const std::string& videoPath);
 
+    // Add a web app participant
+    // Returns participant ID on success, -1 on failure
+    int addWebApp(const std::string& name, const std::string& url);
+
     // Remove a participant by ID
     bool removeParticipant(int participantId);
 

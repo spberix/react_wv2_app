@@ -124,6 +124,11 @@ namespace video_bindings {
 // Returns: {"success": true, "participantId": 1}
 std::string addParticipant(const std::string& args);
 
+// Add web app participant
+// Args: {"name": "Web App", "url": "https://example.com"}
+// Returns: {"success": true, "participantId": 2}
+std::string addWebApp(const std::string& args);
+
 // Remove participant by ID
 // Args: {"participantId": 1}
 // Returns: {"success": true}

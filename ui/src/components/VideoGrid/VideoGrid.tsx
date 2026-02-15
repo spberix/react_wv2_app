@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { videoBridge, ParticipantLayout } from '../../bridge/video-bridge';
+import { videoBridge, ParticipantLayout, ParticipantType } from '../../bridge/video-bridge';
 import { VideoControls } from './VideoControls';
 import { VideoTile } from './VideoTile';
+import { WebAppTile } from './WebAppTile';
 import './VideoGrid.css';
 
 export const VideoGrid: React.FC = () => {
@@ -81,6 +82,21 @@ export const VideoGrid: React.FC = () => {
     }
   };
 
+  const handleAddWebApp = async () => {
+    try {
+      const name = `Web App ${participants.length + 1}`;
+      const url = 'https://microsoft.com';
+      const success = await videoBridge.addWebApp(name, url);
+
+      if (!success) {
+        console.error('Failed to add web app');
+      }
+      // No need to manually update state - C++ will push notification
+    } catch (err) {
+      console.error('Error adding web app:', err);
+    }
+  };
+
   const handleRemoveParticipant = async () => {
     if (participants.length === 0) return;
 
@@ -109,15 +125,20 @@ export const VideoGrid: React.FC = () => {
     <div className="video-grid-container">
       <VideoControls
         onAddParticipant={handleAddParticipant}
+        onAddWebApp={handleAddWebApp}
         onRemoveParticipant={handleRemoveParticipant}
         canAdd={participants.length < 9}
         canRemove={participants.length > 0}
         participantCount={participants.length}
       />
       <div className="video-grid" ref={gridRef}>
-        {participants.map(p => (
-          <VideoTile key={p.id} participant={p} gridOffset={gridOffset} />
-        ))}
+        {participants.map(p => {
+          if (p.type === ParticipantType.WEB_APP) {
+            return <WebAppTile key={p.id} participant={p} gridOffset={gridOffset} />;
+          } else {
+            return <VideoTile key={p.id} participant={p} gridOffset={gridOffset} />;
+          }
+        })}
       </div>
     </div>
   );

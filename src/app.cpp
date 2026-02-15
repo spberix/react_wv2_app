@@ -340,6 +340,11 @@ void Application::setupVideoBindings() {
         return video_bindings::addParticipant(args);
     });
 
+    // Add web app
+    webview_->bind("videoAddWebApp", [manager](const std::string& args) -> std::string {
+        return video_bindings::addWebApp(args);
+    });
+
     // Remove participant
     webview_->bind("videoRemoveParticipant", [manager](const std::string& args) -> std::string {
         return video_bindings::removeParticipant(args);
@@ -466,6 +471,46 @@ std::string addParticipant(const std::string& args) {
 
     if (participantId < 0) {
         return R"({"success": false, "error": "Failed to add participant"})";
+    }
+
+    return "{\"success\": true, \"participantId\": " + std::to_string(participantId) + "}";
+}
+
+std::string addWebApp(const std::string& args) {
+    std::cout << "videoAddWebApp called with: " << args << std::endl;
+
+    if (!g_videoGridManager) {
+        return R"({"success": false, "error": "Video grid manager not initialized"})";
+    }
+
+    // Extract JSON from webview array format
+    std::string json = extractJsonFromArray(args);
+    std::cout << "Extracted JSON: " << json << std::endl;
+
+    // Parse args: {"name": "Web App", "url": "https://example.com"}
+    std::string name = parseJsonString(json, "name");
+    std::string url = parseJsonString(json, "url");
+
+    if (name.empty()) {
+        return R"({"success": false, "error": "Missing name"})";
+    }
+
+    if (url.empty()) {
+        return R"({"success": false, "error": "Missing url"})";
+    }
+
+    // Check capacity
+    int currentCount = g_videoGridManager->getParticipantCount();
+    if (currentCount >= 9) {
+        return R"({"success": false, "error": "Maximum participants reached"})";
+    }
+
+    std::cout << "Adding web app: " << name << " (" << url << ")" << std::endl;
+
+    int participantId = g_videoGridManager->addWebApp(name, url);
+
+    if (participantId < 0) {
+        return R"({"success": false, "error": "Failed to add web app"})";
     }
 
     return "{\"success\": true, \"participantId\": " + std::to_string(participantId) + "}";

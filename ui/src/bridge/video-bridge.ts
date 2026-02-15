@@ -2,6 +2,11 @@
  * Video Bridge - TypeScript interface for C++ video functionality
  */
 
+export enum ParticipantType {
+  VIDEO = 'video',
+  WEB_APP = 'web_app',
+}
+
 export interface VideoPosition {
   x: number;
   y: number;
@@ -12,6 +17,8 @@ export interface VideoPosition {
 export interface ParticipantLayout {
   id: number;
   name: string;
+  type: ParticipantType;
+  contentUrl: string;
   position: VideoPosition;
 }
 
@@ -40,6 +47,7 @@ interface SelectVideoFileResponse {
 declare global {
   interface Window {
     videoAddParticipant: (args: string) => Promise<string>;
+    videoAddWebApp: (args: string) => Promise<string>;
     videoRemoveParticipant: (args: string) => Promise<string>;
     videoGetGridLayout: (args: string) => Promise<string>;
     videoSelectFile: (args: string) => Promise<string>;
@@ -65,6 +73,28 @@ class VideoBridge {
       }
     } catch (error) {
       console.error('Error in addParticipant:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Add a web app participant
+   */
+  async addWebApp(name: string, url: string): Promise<boolean> {
+    try {
+      const args = JSON.stringify({ name, url });
+      const result = await window.videoAddWebApp(args);
+      const response: AddParticipantResponse = JSON.parse(result);
+
+      if (response.success) {
+        console.log('Web app added:', response.participantId);
+        return true;
+      } else {
+        console.error('Failed to add web app:', response.error);
+        return false;
+      }
+    } catch (error) {
+      console.error('Error in addWebApp:', error);
       return false;
     }
   }

@@ -93,6 +93,15 @@
   background: linear-gradient(135deg, #7b8ff0 0%, #8a5bb5 100%);
 }
 
+.add-webapp-button {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  color: white;
+}
+
+.add-webapp-button:hover:not(:disabled) {
+  background: linear-gradient(135deg, #1aaa9a 0%, #4aff8f 100%);
+}
+
 .remove-button {
   background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
   color: white;
@@ -133,4 +142,24 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(5px);
   pointer-events: none; /* Don't block mouse events */
+}
+
+/* Web App Tile */
+.web-app-tile {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  background: white;
+  /* position is set via inline styles - don't override here */
+  /* Smooth animations matching native video tiles (0.2s) */
+  transition: left 0.2s ease-in-out, top 0.2s ease-in-out,
+              width 0.2s ease-in-out, height 0.2s ease-in-out;
+}
+
+/* Web App Iframe */
+.web-app-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
 }

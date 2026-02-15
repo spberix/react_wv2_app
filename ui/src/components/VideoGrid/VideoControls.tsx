@@ -2,6 +2,7 @@ import React from 'react';
 
 interface VideoControlsProps {
   onAddParticipant: () => void;
+  onAddWebApp: () => void;
   onRemoveParticipant: () => void;
   canAdd: boolean;
   canRemove: boolean;
@@ -10,6 +11,7 @@ interface VideoControlsProps {
 
 export const VideoControls: React.FC<VideoControlsProps> = ({
   onAddParticipant,
+  onAddWebApp,
   onRemoveParticipant,
   canAdd,
   canRemove,
@@ -31,6 +33,14 @@ export const VideoControls: React.FC<VideoControlsProps> = ({
           title={canAdd ? 'Add Participant' : 'Maximum capacity reached (9)'}
         >
           + Add Participant
+        </button>
+        <button
+          className="control-button add-webapp-button"
+          onClick={onAddWebApp}
+          disabled={!canAdd}
+          title={canAdd ? 'Add Web App' : 'Maximum capacity reached (9)'}
+        >
+          + Add Web App
         </button>
         <button
           className="control-button remove-button"

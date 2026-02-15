@@ -22,7 +22,8 @@
       "Bash(find:*)",
       "Bash(grep:*)",
       "Bash(make:*)",
-      "Bash(/Users/elgasano/Sources/TeamsBICSandbox/build/TeamsBICSandbox)"
+      "Bash(/Users/elgasano/Sources/TeamsBICSandbox/build/TeamsBICSandbox)",
+      "Bash(tree:*)"
     ]
   }
 }
