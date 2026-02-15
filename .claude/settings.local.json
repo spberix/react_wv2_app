@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npm cache clean:*)",
+      "Bash(cmake:*)",
+      "Bash(curl:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "Bash(pkill:*)",
+      "Bash(./TeamsBICSandbox)",
+      "Bash(lsof:*)",
+      "Bash(npm run build:*)",
+      "Bash(./build/TeamsBICSandbox)",
+      "Bash(xargs kill)",
+      "Bash(chmod:*)",
+      "Bash(./generate_test_videos.sh)",
+      "Bash(brew install:*)",
+      "Bash(ffmpeg:*)",
+      "Bash(git init:*)"
+    ]
+  }
+}

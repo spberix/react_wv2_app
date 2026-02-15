@@ -1,0 +1,22 @@
+# Build directories
+build/
+ui/dist/
+ui/node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+*.dSYM
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.temp
