@@ -27,7 +27,11 @@ export const WebAppTile: React.FC<WebAppTileProps> = ({ participant, gridOffset 
   };
 
   return (
-    <div className="web-app-tile" style={containerStyle}>
+    <div
+      className="web-app-tile"
+      style={containerStyle}
+      data-participant-id={participant.id}
+    >
       <iframe
         className="web-app-iframe"
         src={participant.contentUrl}

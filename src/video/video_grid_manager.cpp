@@ -88,6 +88,9 @@ int VideoGridManager::addParticipant(const std::string& name, const std::string&
         renderer_->addVideoTile(participants_.back());
     }
 
+    // Animate web apps via JavaScript (synchronizes with video animations)
+    animateWebAppTiles(participants_);
+
     // Notify React
     notifyReact();
 
@@ -128,6 +131,9 @@ int VideoGridManager::addWebApp(const std::string& name, const std::string& url)
             renderer_->updateTilePositions(videoParticipants);
         }
     }
+
+    // Animate web apps via JavaScript (synchronizes with video animations)
+    animateWebAppTiles(participants_);
 
     // Notify React (will include all participants, including web apps)
     notifyReact();
@@ -175,6 +181,9 @@ bool VideoGridManager::removeParticipant(int participantId) {
         }
     }
 
+    // Animate web apps via JavaScript (synchronizes with video animations)
+    animateWebAppTiles(participants_);
+
     // Notify React
     notifyReact();
 
@@ -204,6 +213,9 @@ void VideoGridManager::updateWindowSize(int width, int height) {
             renderer_->updateTilePositions(videoParticipants);
         }
     }
+
+    // Animate web apps via JavaScript (synchronizes with video animations)
+    animateWebAppTiles(participants_);
 
     // Notify React
     notifyReact();
@@ -297,6 +309,70 @@ void VideoGridManager::calculateGridLayout() {
                   << " positioned at (" << x << ", " << y << ") "
                   << aspectWidth << "x" << aspectHeight << std::endl;
     }
+}
+
+void VideoGridManager::animateWebAppTiles(const std::vector<VideoParticipant>& participants) {
+    std::cout << "animateWebAppTiles called with " << participants.size() << " participants" << std::endl;
+
+    if (!webview_) {
+        std::cout << "WARNING: webview_ is null, cannot animate" << std::endl;
+        return;
+    }
+
+    // Count web apps
+    int webAppCount = 0;
+    for (const auto& p : participants) {
+        if (p.isWebApp()) {
+            webAppCount++;
+        }
+    }
+
+    std::cout << "Found " << webAppCount << " web apps to animate" << std::endl;
+
+    if (webAppCount == 0) {
+        std::cout << "No web apps to animate, skipping" << std::endl;
+        return;
+    }
+
+    // Build JavaScript to animate all web app iframes
+    std::ostringstream js;
+    js << "(function() {";
+    js << "  const duration = 200;"; // Match CATransaction 0.2s
+    js << "  const easing = 'ease-in-out';";
+
+    // Get grid container offset (matches React's calculation)
+    js << "  const gridContainer = document.querySelector('.video-grid');";
+    js << "  const gridOffset = gridContainer ? gridContainer.getBoundingClientRect() : {left: 0, top: 0};";
+
+    for (const auto& p : participants) {
+        if (p.isWebApp()) {
+            const auto& pos = p.getPosition();
+
+            // Find iframe by participant ID and animate it using Web Animations API
+            js << "  const tile" << p.getId() << " = document.querySelector('[data-participant-id=\""
+               << p.getId() << "\"]');";
+            js << "  if (tile" << p.getId() << ") {";
+            js << "    const adjustedLeft = " << pos.x << " - gridOffset.left;";
+            js << "    const adjustedTop = " << pos.y << " - gridOffset.top;";
+            js << "    tile" << p.getId() << ".animate([";
+            js << "      {},"; // Start from current position
+            js << "      {";
+            js << "        left: adjustedLeft + 'px',";
+            js << "        top: adjustedTop + 'px',";
+            js << "        width: '" << pos.width << "px',";
+            js << "        height: '" << pos.height << "px'";
+            js << "      }";
+            js << "    ], { duration: duration, easing: easing, fill: 'forwards' });";
+            js << "  }";
+        }
+    }
+
+    js << "})();";
+
+    // Execute JavaScript in WebView
+    webview_->eval(js.str());
+
+    std::cout << "Animated web app tiles via JavaScript" << std::endl;
 }
 
 void VideoGridManager::notifyReact() {

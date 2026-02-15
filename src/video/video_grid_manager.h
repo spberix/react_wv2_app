@@ -63,6 +63,9 @@ private:
     // Push notification to React when positions change
     void notifyReact();
 
+    // Animate web app tiles via JavaScript injection
+    void animateWebAppTiles(const std::vector<VideoParticipant>& participants);
+
     // Serialize participants to JSON
     std::string serializeParticipants() const;
 

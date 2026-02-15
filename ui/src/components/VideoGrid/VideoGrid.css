@@ -151,9 +151,7 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
   background: white;
   /* position is set via inline styles - don't override here */
-  /* Smooth animations matching native video tiles (0.2s) */
-  transition: left 0.2s ease-in-out, top 0.2s ease-in-out,
-              width 0.2s ease-in-out, height 0.2s ease-in-out;
+  /* Animations now controlled by native C++ via JavaScript injection */
 }
 
 /* Web App Iframe */
