@@ -24,7 +24,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: transparent; /* Critical for video layer to show through */
   color: #333;
 }
 

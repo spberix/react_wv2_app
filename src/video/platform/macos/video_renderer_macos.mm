@@ -97,45 +97,61 @@ bool VideoRendererMacOS::addVideoTile(const VideoParticipant& participant) {
             return false;
         }
 
-        // Create AVPlayer
-        AVPlayer* player = [AVPlayer playerWithURL:videoURL];
+        std::cout << "Creating video tile synchronously for participant " << participant.getId() << std::endl;
+
+        int participantId = participant.getId();
+        VideoPosition pos = participant.getPosition();
+
+        // Create AVAsset and AVPlayerItem (lightweight operations)
+        AVAsset* asset = [AVAsset assetWithURL:videoURL];
+        AVPlayerItem* playerItem = [AVPlayerItem playerItemWithAsset:asset];
+
+        // Create AVPlayer (loads asynchronously in background)
+        AVPlayer* player = [AVPlayer playerWithPlayerItem:playerItem];
         if (!player) {
-            std::cerr << "Failed to create AVPlayer" << std::endl;
+            std::cerr << "Failed to create AVPlayer for participant " << participantId << std::endl;
             return false;
         }
 
         // Create AVPlayerLayer
         AVPlayerLayer* playerLayer = [AVPlayerLayer playerLayerWithPlayer:player];
         playerLayer.videoGravity = AVLayerVideoGravityResizeAspect;
-        playerLayer.backgroundColor = [[NSColor redColor] CGColor]; // Debug: red background
+        playerLayer.backgroundColor = [[NSColor redColor] CGColor];
 
         // Set position
-        const VideoPosition& pos = participant.getPosition();
         playerLayer.frame = CGRectMake(pos.x, pos.y, pos.width, pos.height);
 
         std::cout << "Adding AVPlayerLayer at position: "
                   << pos.x << ", " << pos.y << " size: "
                   << pos.width << "x" << pos.height << std::endl;
 
-        // Add to container layer
+        // Add to container layer (always safe - CALayer is thread-safe for adding sublayers)
         [videoContainerLayer_ addSublayer:playerLayer];
 
         std::cout << "Video container sublayers count: " << videoContainerLayer_.sublayers.count << std::endl;
 
         // Setup looping
-        setupLooping(player);
+        [[NSNotificationCenter defaultCenter] addObserverForName:AVPlayerItemDidPlayToEndTimeNotification
+                                                          object:playerItem
+                                                           queue:[NSOperationQueue mainQueue]
+                                                      usingBlock:^(NSNotification* note) {
+            [player seekToTime:kCMTimeZero];
+            [player play];
+        }];
 
         // Store tile
         VideoTile tile;
         tile.player = player;
         tile.layer = playerLayer;
-        tile.participantId = participant.getId();
-        videoTiles_[participant.getId()] = tile;
+        tile.participantId = participantId;
+        videoTiles_[participantId] = tile;
 
-        // Start playback
+        // Start playback (AVPlayer loads video data asynchronously)
         [player play];
 
-        std::cout << "Added video tile for participant " << participant.getId() << std::endl;
+        std::cout << "Added video tile for participant " << participantId << std::endl;
+
+        // Return immediately - video loads asynchronously
         return true;
     }
 }
@@ -176,6 +192,12 @@ void VideoRendererMacOS::updateTilePositions(const std::vector<VideoParticipant>
                 [CATransaction setAnimationDuration:0.2];
                 it->second.layer.frame = CGRectMake(pos.x, pos.y, pos.width, pos.height);
                 [CATransaction commit];
+
+                // Ensure video is still playing after position update
+                if (it->second.player.rate == 0.0) {
+                    std::cout << "Restarting video for participant " << participant.getId() << std::endl;
+                    [it->second.player play];
+                }
             }
         }
 

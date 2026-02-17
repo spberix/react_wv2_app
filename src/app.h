@@ -3,10 +3,12 @@
 
 #include <string>
 #include <memory>
-#include "webview/webview.h"
+#include "webview/webview2_wrapper.h"
 
-// Forward declaration
+// Forward declarations
 class VideoGridManager;
+class WindowManager;
+class DragOverlayView;
 
 class Application {
 public:
@@ -23,8 +25,11 @@ public:
     void terminate();
 
 private:
-    std::unique_ptr<webview::webview> webview_;
+    std::shared_ptr<webview2::WebView2Instance> webview_;
+    void* nativeWindow_;  // Platform-specific window handle
     std::unique_ptr<VideoGridManager> videoGridManager_;
+    std::unique_ptr<WindowManager> windowManager_;
+    std::unique_ptr<DragOverlayView> dragOverlayView_;
     std::string title_;
     int width_;
     int height_;

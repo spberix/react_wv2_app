@@ -6,26 +6,54 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# Include webview library headers
-include_directories(${CMAKE_SOURCE_DIR}/vendor/webview/core/include)
+# WebView2 SDK for macOS
+if(APPLE)
+    set(WEBVIEW2_FRAMEWORK_PATH "${CMAKE_SOURCE_DIR}/external/webview2-macos/MSWebView2Staging.framework")
+    if(EXISTS "${WEBVIEW2_FRAMEWORK_PATH}")
+        message(STATUS "WebView2 framework found: ${WEBVIEW2_FRAMEWORK_PATH}")
+        include_directories("${WEBVIEW2_FRAMEWORK_PATH}/Headers")
+    else()
+        message(FATAL_ERROR "WebView2 framework not found at: ${WEBVIEW2_FRAMEWORK_PATH}")
+    endif()
+endif()
+
+# Legacy webview library (will be removed)
+# include_directories(${CMAKE_SOURCE_DIR}/vendor/webview/core/include)
 
 # Video source files (common)
 set(VIDEO_SOURCES
     src/video/video_participant.cpp
     src/video/video_renderer.cpp
     src/video/video_grid_manager.cpp
+    src/video/webview_helper.cpp  # Stubbed for now - needs WebView2 update
 )
+
+# Window management source files (platform-specific)
+set(WINDOW_SOURCES)
 
 # Platform-specific video sources and helpers
 if(APPLE)
     list(APPEND VIDEO_SOURCES
         src/video/platform/macos/video_renderer_macos.mm
         src/platform/macos/platform_helper_macos.mm
+        src/video/platform/macos/drag_overlay_view_macos.mm
+    )
+    list(APPEND WINDOW_SOURCES
+        src/window/platform/macos/child_window_macos.mm
+        src/window/platform/macos/window_manager_macos.mm
+        # src/window/webview_factory.cpp  # Removed - was for old webview library
+        src/webview/platform/macos/webview2_wrapper_macos.mm
     )
     # Set Objective-C++ properties for .mm files
     set_source_files_properties(
+        src/main.mm
+        src/app.mm
         src/video/platform/macos/video_renderer_macos.mm
         src/platform/macos/platform_helper_macos.mm
+        src/video/platform/macos/drag_overlay_view_macos.mm
+        src/window/platform/macos/child_window_macos.mm
+        src/window/platform/macos/window_manager_macos.mm
+        src/webview/platform/macos/webview2_wrapper_macos.mm
         PROPERTIES COMPILE_FLAGS "-fobjc-arc"
     )
 elseif(WIN32)
@@ -42,9 +70,10 @@ endif()
 
 # Source files
 set(SOURCES
-    src/main.cpp
-    src/app.cpp
+    src/main.mm
+    src/app.mm
     ${VIDEO_SOURCES}
+    ${WINDOW_SOURCES}
 )
 
 # Create executable
@@ -62,6 +91,9 @@ if(APPLE)
     find_library(QUARTZCORE_FRAMEWORK QuartzCore REQUIRED)
     find_library(UNIFORMTYPEIDENTIFIERS_FRAMEWORK UniformTypeIdentifiers REQUIRED)
 
+    # WebView2 framework
+    set(WEBVIEW2_FRAMEWORK "${CMAKE_SOURCE_DIR}/external/webview2-macos/MSWebView2Staging.framework")
+
     target_link_libraries(${PROJECT_NAME} PRIVATE
         ${WEBKIT_FRAMEWORK}
         ${COCOA_FRAMEWORK}
@@ -69,6 +101,7 @@ if(APPLE)
         ${COREMEDIA_FRAMEWORK}
         ${QUARTZCORE_FRAMEWORK}
         ${UNIFORMTYPEIDENTIFIERS_FRAMEWORK}
+        ${WEBVIEW2_FRAMEWORK}
     )
 
     # Enable ARC and set macOS deployment target

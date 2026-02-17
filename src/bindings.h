@@ -7,7 +7,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
-#include "webview/webview.h"
+// #include "webview/webview.h"  // Removed - using WebView2 now
 
 namespace bindings {
 

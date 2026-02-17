@@ -1,6 +1,10 @@
 #include "app.h"
 #include <iostream>
 
+#ifdef __APPLE__
+#import <Cocoa/Cocoa.h>
+#endif
+
 #ifdef _WIN32
 #include <windows.h>
 
@@ -38,6 +42,15 @@ int main(int argc, char* argv[]) {
     std::cout << "  Teams BIC Sandbox" << std::endl;
     std::cout << "  C++ WebView + React Application" << std::endl;
     std::cout << "========================================" << std::endl;
+
+#ifdef __APPLE__
+    // Initialize NSApplication on macOS
+    @autoreleasepool {
+        [NSApplication sharedApplication];
+        [NSApp setActivationPolicy:NSApplicationActivationPolicyRegular];
+        [NSApp activateIgnoringOtherApps:YES];
+    }
+#endif
 
     // Check for command-line arguments
     bool useLocalhost = false;

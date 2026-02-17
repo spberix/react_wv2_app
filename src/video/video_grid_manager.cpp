@@ -3,11 +3,15 @@
 #include <iostream>
 #include <cmath>
 
+// External helper function to call webview eval without including webview.h
+extern "C" void callWebViewEval(void* webview, const char* js);
+
 VideoGridManager::VideoGridManager()
     : webview_(nullptr),
       windowWidth_(800),
       windowHeight_(600),
-      nextParticipantId_(1) {
+      nextParticipantId_(1),
+      suppressReactNotifications_(false) {
 }
 
 VideoGridManager::~VideoGridManager() {
@@ -42,7 +46,7 @@ bool VideoGridManager::initialize(void* nativeWindowHandle, int width, int heigh
     return true;
 }
 
-void VideoGridManager::setWebView(webview::webview* webview) {
+void VideoGridManager::setWebView(void* webview) {
     std::lock_guard<std::mutex> lock(mutex_);
     webview_ = webview;
     std::cout << "VideoGridManager: WebView set" << std::endl;
@@ -370,13 +374,17 @@ void VideoGridManager::animateWebAppTiles(const std::vector<VideoParticipant>& p
     js << "})();";
 
     // Execute JavaScript in WebView
-    webview_->eval(js.str());
+    std::string jsCode = js.str();
+    callWebViewEval(webview_, jsCode.c_str());
 
     std::cout << "Animated web app tiles via JavaScript" << std::endl;
 }
 
 void VideoGridManager::notifyReact() {
-    if (!webview_) {
+    if (!webview_ || suppressReactNotifications_) {
+        if (suppressReactNotifications_) {
+            std::cout << "Skipping React notification (suppressed during transfer)" << std::endl;
+        }
         return;
     }
 
@@ -385,9 +393,15 @@ void VideoGridManager::notifyReact() {
                     "{detail: " + json + "}))";
 
     // Execute JavaScript to dispatch event
-    webview_->eval(js);
+    callWebViewEval(webview_, js.c_str());
 
     std::cout << "Notified React with " << participants_.size() << " participants" << std::endl;
+}
+
+void VideoGridManager::setSuppressReactNotifications(bool suppress) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    suppressReactNotifications_ = suppress;
+    std::cout << (suppress ? "Suppressing" : "Enabling") << " React notifications" << std::endl;
 }
 
 std::string VideoGridManager::serializeParticipants() const {
@@ -431,4 +445,176 @@ std::string VideoGridManager::escapeJson(const std::string& str) const {
         }
     }
     return oss.str();
+}
+
+VideoParticipant VideoGridManager::extractParticipant(int participantId) {
+    VideoParticipant participant(-1, "", "", ParticipantType::VIDEO);
+
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        // Suppress React notifications during transfer
+        suppressReactNotifications_ = true;
+
+        // Find participant
+        auto it = std::find_if(participants_.begin(), participants_.end(),
+                              [participantId](const VideoParticipant& p) {
+                                  return p.getId() == participantId;
+                              });
+
+        if (it == participants_.end()) {
+            std::cerr << "Participant " << participantId << " not found for extraction" << std::endl;
+            suppressReactNotifications_ = false;
+            // Return invalid participant
+            return participant;
+        }
+
+        // Make a copy of the participant
+        participant = *it;
+
+        // Remove video tile from renderer (but keep the AVPlayer/Layer alive)
+        // Note: For proper transfer, we need to extract the player/layer first
+        if (renderer_ && participant.isVideo()) {
+            renderer_->removeVideoTile(participantId);
+        }
+
+        // Remove from participants list
+        participants_.erase(it);
+
+        std::cout << "Extracted participant " << participantId << std::endl;
+
+        // Recalculate layout for remaining participants
+        if (!participants_.empty()) {
+            calculateGridLayout();
+
+            // Update positions of all remaining video tiles
+            if (renderer_) {
+                std::vector<VideoParticipant> videoParticipants;
+                for (const auto& p : participants_) {
+                    if (p.isVideo()) {
+                        videoParticipants.push_back(p);
+                    }
+                }
+                if (!videoParticipants.empty()) {
+                    renderer_->updateTilePositions(videoParticipants);
+                }
+            }
+
+            // Animate web apps (will be skipped due to suppression)
+            animateWebAppTiles(participants_);
+        }
+
+        // Re-enable notifications flag
+        suppressReactNotifications_ = false;
+        // Re-enable notifications flag but DON'T call notifyReact yet
+        suppressReactNotifications_ = false;
+    } // Mutex is released here
+
+    // Restart all videos to ensure they're still playing
+    restartAllVideos();
+
+    // DON'T notify React here - it will cause a hang
+    // React will be notified on the next user interaction or we can trigger it later
+    std::cout << "Transfer complete - skipping immediate React notification to avoid hang" << std::endl;
+
+    return participant;
+}
+
+bool VideoGridManager::addExistingParticipant(const VideoParticipant& participant) {
+    {
+        std::lock_guard<std::mutex> lock(mutex_);
+
+        // Suppress React notifications during transfer
+        suppressReactNotifications_ = true;
+
+        // Check if participant ID is valid
+        if (participant.getId() < 0) {
+            std::cerr << "Invalid participant for addition" << std::endl;
+            suppressReactNotifications_ = false;
+            return false;
+        }
+
+        // Check max capacity
+        if (participants_.size() >= MAX_PARTICIPANTS) {
+            std::cerr << "Cannot add participant: maximum capacity reached" << std::endl;
+            suppressReactNotifications_ = false;
+            return false;
+        }
+
+        // Add to list
+        participants_.push_back(participant);
+
+        std::cout << "Added existing participant " << participant.getId() << ": " << participant.getName() << std::endl;
+
+        // Recalculate layout
+        calculateGridLayout();
+
+        // Update positions of ALL existing video tiles (before adding new one)
+        if (renderer_ && participants_.size() > 1) {
+            // Filter only video participants (exclude the newly added one)
+            std::vector<VideoParticipant> existingVideoParticipants;
+            for (size_t i = 0; i < participants_.size() - 1; ++i) {
+                if (participants_[i].isVideo()) {
+                    existingVideoParticipants.push_back(participants_[i]);
+                }
+            }
+            if (!existingVideoParticipants.empty()) {
+                renderer_->updateTilePositions(existingVideoParticipants);
+            }
+        }
+
+        // Add new video tile to renderer
+        if (renderer_ && participant.isVideo()) {
+            renderer_->addVideoTile(participants_.back());
+        }
+
+        // Animate web apps via JavaScript (synchronizes with video animations) - will be skipped due to suppression
+        animateWebAppTiles(participants_);
+
+        // Keep suppressed for now
+    } // Mutex is released here
+
+    // Restart all videos to ensure they're still playing
+    restartAllVideos();
+
+    // DON'T notify React here - it will cause a hang
+    // React will be notified on the next user interaction
+    suppressReactNotifications_ = false;
+    std::cout << "Transfer complete - skipping immediate React notification to avoid hang" << std::endl;
+
+    return true;
+}
+
+bool VideoGridManager::extractVideoTile(int participantId, void** outPlayer, void** outLayer) {
+    // This method would extract the AVPlayer and AVPlayerLayer for transfer
+    // Implementation depends on VideoRenderer having access to these objects
+    // For now, we'll use the simpler extractParticipant/addExistingParticipant flow
+    std::cerr << "extractVideoTile not yet implemented - use extractParticipant instead" << std::endl;
+    return false;
+}
+
+bool VideoGridManager::addExistingVideoTile(int participantId, void* player, void* layer, const VideoParticipant& participant) {
+    // This method would add an existing AVPlayer/AVPlayerLayer
+    // Implementation depends on VideoRenderer supporting this
+    // For now, we'll use the simpler extractParticipant/addExistingParticipant flow
+    std::cerr << "addExistingVideoTile not yet implemented - use addExistingParticipant instead" << std::endl;
+    return false;
+}
+
+void VideoGridManager::restartAllVideos() {
+    if (renderer_) {
+        std::cout << "Restarting all videos..." << std::endl;
+        // Get all video participants
+        std::vector<VideoParticipant> videoParticipants;
+        for (const auto& p : participants_) {
+            if (p.isVideo()) {
+                videoParticipants.push_back(p);
+            }
+        }
+
+        if (!videoParticipants.empty()) {
+            // Force position update which will also restart videos
+            renderer_->updateTilePositions(videoParticipants);
+        }
+    }
 }

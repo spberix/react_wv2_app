@@ -3,7 +3,6 @@
 
 #include "video_participant.h"
 #include "video_renderer.h"
-#include "webview/webview.h"
 #include <vector>
 #include <memory>
 #include <mutex>
@@ -18,7 +17,8 @@ public:
     bool initialize(void* nativeWindowHandle, int width, int height);
 
     // Set the webview instance for push notifications to React
-    void setWebView(webview::webview* webview);
+    // Using void* to avoid including webview.h header
+    void setWebView(void* webview);
 
     // Add a participant with video file
     // Returns participant ID on success, -1 on failure
@@ -43,14 +43,32 @@ public:
     // Cleanup
     void cleanup();
 
+    // Participant transfer operations (for drag-and-drop between windows)
+    VideoParticipant extractParticipant(int participantId);
+    bool addExistingParticipant(const VideoParticipant& participant);
+
+    // Extract and add video tiles (AVPlayerLayer transfer)
+    bool extractVideoTile(int participantId, void** outPlayer, void** outLayer);
+    bool addExistingVideoTile(int participantId, void* player, void* layer, const VideoParticipant& participant);
+
+    // Force restart all videos
+    void restartAllVideos();
+
+    // Suppress React notifications during transfers (to avoid blocking webview->eval())
+    void setSuppressReactNotifications(bool suppress);
+
+    // Manually trigger React notification (used after suppressed operations complete)
+    void notifyReact();
+
 private:
     std::vector<VideoParticipant> participants_;
     std::unique_ptr<VideoRenderer> renderer_;
-    webview::webview* webview_;
+    void* webview_; // Using void* to avoid including webview.h
     int windowWidth_;
     int windowHeight_;
     int nextParticipantId_;
     mutable std::mutex mutex_;
+    bool suppressReactNotifications_;
 
     // Layout constants
     static constexpr int MAX_PARTICIPANTS = 9;
@@ -59,9 +77,6 @@ private:
 
     // Calculate grid layout positions for all participants
     void calculateGridLayout();
-
-    // Push notification to React when positions change
-    void notifyReact();
 
     // Animate web app tiles via JavaScript injection
     void animateWebAppTiles(const std::vector<VideoParticipant>& participants);

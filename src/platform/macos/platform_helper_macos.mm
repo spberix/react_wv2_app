@@ -13,66 +13,12 @@ void* getNativeWindowHandle(void* webviewWindow) {
     return webviewWindow;
 }
 
-// Helper function to recursively find WKWebView
-static NSView* findWKWebView(NSView* view) {
-    if ([view isKindOfClass:NSClassFromString(@"WKWebView")]) {
-        return view;
-    }
-
-    for (NSView* subview in view.subviews) {
-        NSView* found = findWKWebView(subview);
-        if (found) {
-            return found;
-        }
-    }
-
-    return nil;
-}
-
+// This function is no longer needed - WebView2 transparency is configured
+// directly via controller.defaultBackgroundColor in WebView2Instance
 void configureWebViewTransparency(void* webviewWindow) {
-    if (!webviewWindow) {
-        std::cerr << "No window handle for transparency configuration" << std::endl;
-        return;
-    }
-
-    @autoreleasepool {
-        NSWindow* window = (__bridge NSWindow*)webviewWindow;
-        NSView* contentView = window.contentView;
-
-        std::cout << "Configuring WebView transparency..." << std::endl;
-
-        // Make the window itself transparent
-        [window setOpaque:NO];
-        [window setBackgroundColor:[NSColor clearColor]];
-
-        // Make the content view transparent
-        [contentView setWantsLayer:YES];
-        contentView.layer.backgroundColor = [[NSColor clearColor] CGColor];
-
-        // Recursively find the WKWebView
-        NSView* wkWebView = findWKWebView(contentView);
-
-        if (wkWebView) {
-            std::cout << "Found WKWebView!" << std::endl;
-
-            // Make the WKWebView transparent
-            [wkWebView setValue:@NO forKey:@"drawsBackground"];
-
-            // Set background color to clear
-            if ([wkWebView respondsToSelector:@selector(setValue:forKey:)]) {
-                [(id)wkWebView setValue:[NSColor clearColor] forKey:@"backgroundColor"];
-            }
-
-            // Also make its layer transparent
-            [wkWebView setWantsLayer:YES];
-            wkWebView.layer.backgroundColor = [[NSColor clearColor] CGColor];
-            wkWebView.layer.opaque = NO;
-
-            std::cout << "WebView transparency configured!" << std::endl;
-        } else {
-            std::cerr << "Warning: WKWebView not found in view hierarchy" << std::endl;
-        }
-    }
+    // No-op: WebView2 transparency is now handled in webview2_wrapper_macos.mm
+    // via controller.defaultBackgroundColor = [NSColor clearColor]
+    std::cout << "configureWebViewTransparency called (deprecated - WebView2 handles this internally)" << std::endl;
 }
 
 std::string selectVideoFile() {

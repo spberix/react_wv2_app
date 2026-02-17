@@ -23,7 +23,26 @@
       "Bash(grep:*)",
       "Bash(make:*)",
       "Bash(/Users/elgasano/Sources/TeamsBICSandbox/build/TeamsBICSandbox)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(ps:*)",
+      "Bash(killall:*)",
+      "Bash(tee:*)",
+      "WebFetch(domain:dev.azure.com)",
+      "Bash(open \"https://dev.azure.com/microsoft/Edge/_artifacts/feed/webview2-mac-stable/UPack/webview2_sdk/overview/0.3800.64\")",
+      "Bash(./start_webview2_integration.sh:*)",
+      "Bash(./verify_webview2_sdk.sh)",
+      "Bash(clang++:*)",
+      "Bash(./test_webview2)",
+      "Bash(az artifacts universal search:*)",
+      "Bash(plutil:*)",
+      "Bash(ls:*)",
+      "Bash(unzip:*)",
+      "Bash(kill:*)",
+      "Bash(echo \"Monitoring for button click \\(30 seconds\\)...\" for i in {1..30})",
+      "Bash(do sleep 1 if tail -15 /tmp/test_webview2_debug.log)",
+      "Bash(then echo \"=== Button clicked! Here''''s the output: ===\" tail -40 /tmp/test_webview2_debug.log break fi done)",
+      "Bash(jq:*)",
+      "Bash(/tmp/test_close_interactive.sh)"
     ]
   }
 }

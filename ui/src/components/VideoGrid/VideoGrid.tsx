@@ -68,6 +68,37 @@ export const VideoGrid: React.FC = () => {
     return unsubscribe; // Cleanup on unmount
   }, []);
 
+  // Listen for drag state changes from C++ for cursor styling
+  useEffect(() => {
+    const handleDragState = (e: CustomEvent) => {
+      const { state } = e.detail;
+
+      // Update cursor based on drag state
+      switch (state) {
+        case 'outside':
+          document.body.style.cursor = 'copy'; // Show "create window" cursor
+          console.log('Drag state: outside - showing copy cursor');
+          break;
+        case 'other_window':
+          document.body.style.cursor = 'move';
+          console.log('Drag state: other_window - showing move cursor');
+          break;
+        case 'same_window':
+          document.body.style.cursor = 'grabbing';
+          console.log('Drag state: same_window - showing grabbing cursor');
+          break;
+        case 'none':
+        default:
+          document.body.style.cursor = 'default';
+          console.log('Drag state: none - showing default cursor');
+          break;
+      }
+    };
+
+    window.addEventListener('dragStateChanged', handleDragState as EventListener);
+    return () => window.removeEventListener('dragStateChanged', handleDragState as EventListener);
+  }, []);
+
   const handleAddParticipant = async () => {
     try {
       const name = `Participant ${participants.length + 1}`;
