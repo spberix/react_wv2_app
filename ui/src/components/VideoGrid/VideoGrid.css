@@ -126,6 +126,7 @@
   background: transparent; /* Critical! */
   /* position is set via inline styles - don't override here */
   pointer-events: none; /* Don't block mouse events */
+  z-index: 10; /* Ensure tile and label appear above video */
 }
 
 /* Participant Label */
@@ -142,6 +143,7 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   backdrop-filter: blur(5px);
   pointer-events: none; /* Don't block mouse events */
+  z-index: 100; /* Ensure label appears above everything */
 }
 
 /* Web App Tile */

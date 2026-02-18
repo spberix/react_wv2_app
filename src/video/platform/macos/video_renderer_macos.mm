@@ -34,6 +34,7 @@ bool VideoRendererMacOS::initialize(void* nativeWindowHandle) {
     videoContainerLayer_.autoresizingMask = kCALayerWidthSizable | kCALayerHeightSizable;
     videoContainerLayer_.backgroundColor = [[NSColor blackColor] CGColor]; // Black background
     videoContainerLayer_.opaque = YES;
+    videoContainerLayer_.geometryFlipped = YES; // Use top-left origin coordinate system
 
     // Insert video layer at the bottom (index 0)
     [window_.contentView.layer insertSublayer:videoContainerLayer_ atIndex:0];
@@ -116,7 +117,8 @@ bool VideoRendererMacOS::addVideoTile(const VideoParticipant& participant) {
         // Create AVPlayerLayer
         AVPlayerLayer* playerLayer = [AVPlayerLayer playerLayerWithPlayer:player];
         playerLayer.videoGravity = AVLayerVideoGravityResizeAspect;
-        playerLayer.backgroundColor = [[NSColor redColor] CGColor];
+        playerLayer.backgroundColor = [[NSColor blackColor] CGColor];
+        playerLayer.needsDisplayOnBoundsChange = YES; // Force redraw on frame changes
 
         // Set position
         playerLayer.frame = CGRectMake(pos.x, pos.y, pos.width, pos.height);
@@ -182,24 +184,36 @@ bool VideoRendererMacOS::removeVideoTile(int participantId) {
 
 void VideoRendererMacOS::updateTilePositions(const std::vector<VideoParticipant>& participants) {
     @autoreleasepool {
+        // Animate with CATransaction at 200ms
+        [CATransaction begin];
+        [CATransaction setAnimationDuration:0.2]; // 200ms for video tiles
+
         for (const auto& participant : participants) {
             auto it = videoTiles_.find(participant.getId());
             if (it != videoTiles_.end()) {
                 const VideoPosition& pos = participant.getPosition();
 
-                // Animate position change
-                [CATransaction begin];
-                [CATransaction setAnimationDuration:0.2];
-                it->second.layer.frame = CGRectMake(pos.x, pos.y, pos.width, pos.height);
-                [CATransaction commit];
+                CGRect oldFrame = it->second.layer.frame;
+                std::cout << "Updating participant " << participant.getId()
+                          << " from (" << oldFrame.origin.x << ", " << oldFrame.origin.y << ")"
+                          << " to (" << pos.x << ", " << pos.y << ")"
+                          << " - rate: " << it->second.player.rate
+                          << " status: " << (int)it->second.player.status << std::endl;
 
-                // Ensure video is still playing after position update
+                // Update frame with animation
+                it->second.layer.frame = CGRectMake(pos.x, pos.y, pos.width, pos.height);
+
+                CGRect newFrame = it->second.layer.frame;
+                std::cout << "  Frame after update: (" << newFrame.origin.x << ", " << newFrame.origin.y << ")" << std::endl;
+
+                // Ensure video is still playing
                 if (it->second.player.rate == 0.0) {
-                    std::cout << "Restarting video for participant " << participant.getId() << std::endl;
                     [it->second.player play];
                 }
             }
         }
+
+        [CATransaction commit];
 
         std::cout << "Updated positions for " << participants.size() << " video tiles" << std::endl;
     }

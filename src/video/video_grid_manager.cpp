@@ -341,8 +341,8 @@ void VideoGridManager::animateWebAppTiles(const std::vector<VideoParticipant>& p
     // Build JavaScript to animate all web app iframes
     std::ostringstream js;
     js << "(function() {";
-    js << "  const duration = 200;"; // Match CATransaction 0.2s
-    js << "  const easing = 'ease-in-out';";
+    js << "  const duration = 150;"; // 150ms for web apps
+    js << "  const easing = 'ease';";
 
     // Get grid container offset (matches React's calculation)
     js << "  const gridContainer = document.querySelector('.video-grid');";
@@ -412,6 +412,7 @@ std::string VideoGridManager::serializeParticipants() const {
         const auto& p = participants_[i];
         const auto& pos = p.getPosition();
 
+        // Send window-absolute coordinates to React
         oss << "{\"id\": " << p.getId()
             << ", \"name\": \"" << escapeJson(p.getName()) << "\""
             << ", \"type\": \"" << (p.isVideo() ? "video" : "web_app") << "\""
